@@ -1,6 +1,7 @@
 #first task input example
 qwertyuiopuiopuiop
 uiop
+2
 #second task input example
 qwertyuiopuiopuiop
 wertyuiopuiopuiopq
