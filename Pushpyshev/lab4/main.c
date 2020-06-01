@@ -14,6 +14,7 @@ struct Args
     char *line;//искомое
     long int x0;//начало
     long int x1;//конец
+    int thread_num;
 };
 
 char* read_pattern(char *filename)
@@ -48,11 +49,14 @@ void* seek_substring_KMP (void *ptr)
 
     //Вычисление префикс-функции
     pi[0] = 0;
+
     int sch = 0;
-    printf("Part of this thread is ");
-    for (int p = a->x0; p <= a->x1; p++)
+
+    for (int p = a->x0, b = printf("Part of this thread is "); p <= a->x1; p++) {
         printf("%c", a->pattern[p]);
+    }
     printf("\n");
+
     for(long int i = 1; i < M; i++)
     {
         while(ofst > 0 && a->line[ofst] != a->line[i])
@@ -61,14 +65,21 @@ void* seek_substring_KMP (void *ptr)
             ofst++;
         pi[i] = ofst;
     }
+
     //поиск
-    for(long int i = a->x0, j = 0; i < a->x1; i++)
+    for(long int i = a->x0, j = 0; i <= a->x1; i++)
     {
         while(j > 0 && a->line[j] != a->pattern[i])
             j = pi[j - 1];
-
+        //вывод текущего состояния сдвинутой позиции j
+        //контроль позиции в исходной строке
+        //отслеживание сравнения символов(ход алгоритма)
+        printf("\n>Thread number %d, current j is %ld\n", a->thread_num, j);
+        printf("\n>Thread number %d, position in pattern now %ld\n", a->thread_num, i);
+        printf("\n>Thread number %d, checking difference between |%c| in substring on %ld and |%c| in pattern on %ld\n", a->thread_num, a->line[j], j, a->pattern[i], i);
         if(a->line[j] == a->pattern[i])
             j++;
+        printf("\n>Thread number %d, current state of j is %ld\n>Position in pattern now %ld\n", a->thread_num, j, i);
         if (j == M)
         {
             sch++;
@@ -79,6 +90,8 @@ void* seek_substring_KMP (void *ptr)
                 }
             } else printf("Pos = %ld\n", i - j + 1);
         }
+        //отслеживания количества верных ответов на текузий момент
+        printf("\n>Thread number %d, count of Ok positions is %ld\n", a->thread_num, sch);
     }
     free (pi); /* освобождение памяти массива pi */
     if(a->x1 == strlen(a->pattern) - 1 && sch == 0)
@@ -89,13 +102,14 @@ void* seek_substring_KMP (void *ptr)
 int main(int argc, char** argv)
 {
 
-
     char * pattern = (char*)malloc((sizeof(char) * 5000001));
     char * line = (char*)malloc((sizeof(char) * 5000001));
     scanf("%s", pattern);
     scanf("%s", line);
     bool flag = false;
 
+    //если строки совпадают по размеру, запускаем алгоритм поиска сдвига
+    //в случае совпадения строк выдаст начальную позицию
     if (strlen(pattern) == strlen(line)){
         char * buf = (char*)malloc(sizeof(char)*(strlen(pattern)*2+1));
         for(int i = 0; i < strlen(pattern)*2; i++)
@@ -105,7 +119,6 @@ int main(int argc, char** argv)
         pattern = buf;
         flag = true;
     }
-
 
     int threads_count = 1;
     scanf("%d", &threads_count);
@@ -125,6 +138,7 @@ int main(int argc, char** argv)
         a[i].pattern = pattern;
         a[i].line = line;
         a[i].x0 = i * NUM;
+        a[i].thread_num = i;
         if(i == threads_count - 1)
         {
             a[i].x1 = strlen(pattern) - 1;
@@ -144,6 +158,7 @@ int main(int argc, char** argv)
             fprintf(stderr,"Error - pthread_create() return code: %d\n",error_code);
             exit(0);
         }
+        //else printf("Thread %d is created\n",i);
 
     }
     //ожидание завершения потоков
